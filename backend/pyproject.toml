@@ -1,0 +1,15 @@
+[project]
+name = "travel-and-tourism"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "bcrypt>=5.0.0",
+    "dotenv>=0.9.9",
+    "fastapi>=0.128.7",
+    "pydantic[email]>=2.12.5",
+    "pyjwt>=2.11.0",
+    "sqlalchemy>=2.0.46",
+    "uvicorn>=0.40.0",
+]
