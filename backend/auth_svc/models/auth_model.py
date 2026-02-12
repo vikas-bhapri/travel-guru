@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
-from database.database import Base
+from ..database.database import Base
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -21,7 +21,16 @@ class Users(Base):
         default=datetime.utcnow(),
         onupdate=datetime.utcnow(),
     )
-    user_sessions = relationship("UserSessions", back_populates="user")
+    role = Column(
+        Enum("user", "admin", name="user_roles"), default="user", nullable=False
+    )
+
+    user_sessions = relationship(
+        "UserSessions", back_populates="user", cascade="all, delete-orphan"
+    )
+    reset_tokens = relationship(
+        "ResetPasswordTokens", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserSessions(Base):
@@ -33,3 +42,15 @@ class UserSessions(Base):
     expires_at = Column(TIMESTAMP, nullable=False)
 
     user = relationship("Users", back_populates="user_sessions")
+
+
+class ResetPasswordTokens(Base):
+    __tablename__ = "reset_password_tokens"
+
+    token_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_name = Column(String, ForeignKey("users.user_name"), nullable=False)
+    hashed_token = Column(String, nullable=False)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+
+    user = relationship("Users", back_populates="reset_tokens")

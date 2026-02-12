@@ -27,7 +27,7 @@ erDiagram
 
     User_Sessions {
         uuid session_id PK
-        uuid user_id FK
+        varchar(30) user_name FK
         text refresh_token
         timestamp expires_at
     }
