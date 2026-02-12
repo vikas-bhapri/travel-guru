@@ -8,12 +8,9 @@ from dotenv import load_dotenv
 # Get the directory where this file is located
 BASE_DIR = Path(__file__).resolve().parent
 
-# Load .env from the auth_svc directory (1 level up from database.py)
-env_path = BASE_DIR.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
 AUTH_DATABASE_URL = os.getenv("AUTH_DATABASE_URL", f"sqlite:///{BASE_DIR}/auth_db.db")
-
 # Only use check_same_thread for SQLite
 connect_args = {"check_same_thread": False} if "sqlite" in AUTH_DATABASE_URL else {}
 engine = create_engine(AUTH_DATABASE_URL, connect_args=connect_args)
