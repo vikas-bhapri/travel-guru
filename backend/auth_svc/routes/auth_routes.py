@@ -49,7 +49,7 @@ def update_user(
     return updated_user
 
 
-@router.delete("/delete-user", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/delete-user", status_code=status.HTTP_202_ACCEPTED)
 def delete_user(
     user: auth_schema.DeleteUser,
     db: Session = Depends(get_db),
@@ -78,7 +78,24 @@ def password_reset(password: dict, db: Session = Depends(get_db)):
 
 @router.post("/password-update", status_code=status.HTTP_200_OK)
 def update_password(
-    password: auth_schema.UpdatePassword, db: Session = Depends(get_db)
+    password: auth_schema.UpdatePassword,
+    db: Session = Depends(get_db),
+    current_user=Depends(auth_controller.get_current_user),
 ):
     auth_controller.update_password(password, db)
     return {"message": "Password updated successfully"}
+
+
+@router.get(
+    "/refresh-token", response_model=auth_schema.Token, status_code=status.HTTP_200_OK
+)
+def refresh_token(
+    current_user=Depends(auth_controller.get_current_user),
+    db: Session = Depends(get_db),
+):
+    new_tokens = auth_controller.refresh_token(current_user, db)
+    return new_tokens
+
+@router.get("/validate-user", status_code=status.HTTP_200_OK)
+def validate_user(current_user=Depends(auth_controller.get_current_user)):
+    return {"message": "User is valid", "user": current_user}

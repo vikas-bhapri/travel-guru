@@ -170,7 +170,7 @@ def update_user(user: auth_schema.UpdateUser, db: Session):
         )
 
     for field, value in user.model_dump(exclude_unset=True).items():
-        if field != "user_name":  # Don't update the primary key
+        if field not in ["user_name", "email"]:  # Don't update the primary key
             setattr(existing_user, field, value)
 
     db.commit()
@@ -335,3 +335,36 @@ def update_password(password_data: auth_schema.UpdatePassword, db: Session):
     db.commit()
 
     return {"message": "Password updated successfully"}
+
+
+def refresh_token(current_user: dict, db: Session):
+    current_session = (
+        db.query(auth_model.UserSessions)
+        .filter(auth_model.UserSessions.user_name == current_user["user_name"])
+        .first()
+    )
+
+    if not current_session:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            {"message": "Refresh token expired, please log in again"},
+        )
+
+    expires_at = current_session.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < datetime.now(timezone.utc):
+        db.delete(current_session)
+        db.commit()
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            {"message": "Refresh token expired, please log in again"},
+        )
+
+    payload = {"sub": current_user["user_name"], "role": current_user["role"]}
+
+    new_access_token = generate_token(payload, expires_delta=timedelta(minutes=15))
+    refresh_token = current_session.refresh_token
+
+    return {"access_token": new_access_token, "refresh_token": refresh_token}

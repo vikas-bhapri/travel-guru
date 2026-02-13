@@ -17,6 +17,8 @@ engine = create_engine(AUTH_DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+if AUTH_DATABASE_URL.startswith("postgres"):
+    print("Using PostgreSQL database for authentication service.")
 
 def get_db():
     db = SessionLocal()

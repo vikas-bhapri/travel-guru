@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from .routes import auth_proxy
 
 app = FastAPI(
     title="Travel Guru API",
@@ -7,7 +8,9 @@ app = FastAPI(
     contact={"name": "Vikas Bhapri", "email": "vikasbhapri@gmail.com"},
 )
 
+app.include_router(auth_proxy.router)
+
 
 @app.get("/")
 async def hello_world():
-    return {"message": "Welcome to the Travel Guru API!"}
+    return {"message": "Welcome to the Travel Guru API Gateway!"}
