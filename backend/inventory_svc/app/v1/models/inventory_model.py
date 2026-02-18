@@ -1,9 +1,17 @@
-from sqlalchemy import  Integer, String, Float, ForeignKey, Text, DateTime, UniqueConstraint, JSON
+from sqlalchemy import Integer, String, Float, ForeignKey, Text, DateTime, UniqueConstraint, JSON, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from ..models.base import Base
-from datetime import datetime, timezone
+from datetime import datetime
+
+# Association table for Hotel-Amenity many-to-many relationship
+hotel_amenities = Table(
+    'hotel_amenity',
+    Base.metadata,
+    Column('hotel_id', UUID(as_uuid=True), ForeignKey('hotel.hotel_id'), primary_key=True),
+    Column('amenity_id', UUID(as_uuid=True), ForeignKey('amenity.amenity_id'), primary_key=True)
+)
 
 class Destination(Base):
     destination_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -13,8 +21,8 @@ class Destination(Base):
     description: Mapped[str] = mapped_column(Text)
     image_url: Mapped[str] = mapped_column(Text)
     tags: Mapped[list[str]] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at: Mapped[str] = mapped_column(DateTime,default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[str] = mapped_column(DateTime,default=datetime.utcnow, onupdate=datetime.utcnow)
 
     hotels = relationship("Hotel", back_populates="destination", cascade="all, delete-orphan")
     packages = relationship("TourPackage", back_populates="destination", cascade="all, delete-orphan")
@@ -25,16 +33,16 @@ class Hotel(Base):
     destination_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('destination.destination_id'), nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[str] = mapped_column(nullable=False)
-    rating: Mapped[float] = mapped_column()
+    rating: Mapped[float] = mapped_column(default=0.0)
     price_per_night: Mapped[float] = mapped_column()
     latitude: Mapped[float] = mapped_column()
     longitude: Mapped[float] = mapped_column()
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     destination = relationship("Destination", back_populates="hotels")
     rooms = relationship("Room", back_populates="hotel", cascade="all, delete-orphan")
-    amentities = relationship("Amenity", secondary="hotel_amenities", back_populates="hotel")
+    amenities = relationship("Amenity", secondary=hotel_amenities, back_populates="hotels")
     pricing_rules = relationship("PricingRule", back_populates="hotel", cascade="all, delete-orphan")
 
 class Room(Base):
@@ -45,25 +53,22 @@ class Room(Base):
     capacity_children: Mapped[int] = mapped_column(nullable=False)
     smoking_allowed: Mapped[bool] = mapped_column(nullable=False)
     view: Mapped[str] = mapped_column()
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     hotel = relationship("Hotel", back_populates="rooms")
     availability = relationship("RoomAvailability", back_populates="room", cascade="all, delete-orphan")
+    rates = relationship("RoomRate", back_populates="room", cascade="all, delete-orphan")
 
 class Amenity(Base):
     amenity_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(nullable=False)
     category: Mapped[str] = mapped_column()
     icon_url: Mapped[str] = mapped_column()
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    hotels = relationship("Hotel", secondary="hotel_amenities", back_populates="amenity")
-
-class HotelAmenity(Base):
-    hotel_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('hotel.hotel_id'), primary_key=True)
-    amenity_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('amenity.amenity_id'), primary_key=True)
+    hotels = relationship("Hotel", secondary=hotel_amenities, back_populates="amenities")
 
 class Flight(Base):
     flight_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -74,7 +79,7 @@ class Flight(Base):
     arrival_time: Mapped[str] = mapped_column(DateTime, nullable=False)
     price: Mapped[float] = mapped_column(nullable=False)
     cabin_class: Mapped[str] = mapped_column()
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
 
 class TourPackage(Base):
     package_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -84,21 +89,21 @@ class TourPackage(Base):
     price: Mapped[float] = mapped_column(nullable=False)
     duration_days: Mapped[int] = mapped_column(nullable=False)
     theme: Mapped[str] = mapped_column()
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
-    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    destination = relationship("Destination", back_populates="tour_packages")
-    itenary_items = relationship("PackageItenaryItem", back_populates="package", cascade="all, delete-orphan")
+    destination = relationship("Destination", back_populates="packages")
+    itinerary_items = relationship("PackageItineraryItem", back_populates="package", cascade="all, delete-orphan")
 
-class PackageItenaryItem(Base):
+class PackageItineraryItem(Base):
     item_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     package_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('tourpackage.package_id'), nullable=False)
     day_number: Mapped[int] = mapped_column(nullable=False)
     title: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
 
-    package = relationship("TourPackage", back_populates="itenary_items")
+    package = relationship("TourPackage", back_populates="itinerary_items")
 
 class RoomAvailability(Base):
     availability_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -108,7 +113,7 @@ class RoomAvailability(Base):
     min_stay: Mapped[int] = mapped_column(nullable=False)
     closed_to_arrivals: Mapped[bool] = mapped_column(nullable=False)
     closed_to_departures: Mapped[bool] = mapped_column(nullable=False)
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
 
     room = relationship("Room", back_populates="availability")
 
@@ -126,10 +131,9 @@ class RoomRate(Base):
     refundable: Mapped[bool] = mapped_column(nullable=False)
     meal_plan: Mapped[str] = mapped_column()
     tax_inclusive: Mapped[bool] = mapped_column(nullable=False)
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
 
-    hotel = relationship("Hotel", back_populates="rate_plans")
-    room = relationship("Room", back_populates="rate_plans")
+    room = relationship("Room", back_populates="rates")
 
     __table_args__ = (
         UniqueConstraint('room_id', 'date', name='uq_room_rate_date'),
@@ -144,7 +148,7 @@ class PricingRule(Base):
     start_date: Mapped[str] = mapped_column(DateTime,nullable=False)
     end_date: Mapped[str] = mapped_column(DateTime, nullable=False)
     conditions: Mapped[str] = mapped_column(JSON)
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
 
     hotel = relationship("Hotel", back_populates="pricing_rules")
 
@@ -154,4 +158,4 @@ class Media(Base):
     resource_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     url: Mapped[str] = mapped_column(nullable=False)
     caption: Mapped[str] = mapped_column()
-    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
